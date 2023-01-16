@@ -23,20 +23,20 @@ const db = mongoClient.db()
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
 
-setInterval( async ()=>{
+setInterval(async () => {
     const participants = await db.collection("participants").find().toArray()
-    participants.forEach( async (p) => {
+    participants.forEach(async (p) => {
         const now = Date.now()
-        if (now-p.lastStatus>= 10000){
-            await db.collection("participants").deleteOne({_id: ObjectId(p._id)})
+        if (now - p.lastStatus >= 10000) {
+            await db.collection("participants").deleteOne({ _id: ObjectId(p._id) })
             let time = dayjs(now).format("HH:mm:ss")
-            const message = {from: p.name, to: 'Todos', text: 'sai da sala...', type: 'status', time }
+            const message = { from: p.name, to: 'Todos', text: 'sai da sala...', type: 'status', time }
             await db.collection("messages").insertOne(message)
             console.log(`removed ${p.name}`)
         }
 
     })
-},15000)
+}, 15000)
 
 
 app.post('/participants', async (req, res) => {
@@ -107,14 +107,13 @@ app.post('/messages', async (req, res) => {
 
 app.get('/messages', async (req, res) => {
     const { user } = req.headers
-    const limit = parseInt(req.query.limit)
-
+    const limit = parseInt(req.query.limit) 
     const messageSchema = joi.object({
-        user:joi.string().required(),
-        limit:joi.number().integer().min(1)
+        user: joi.string().required(),
+        limit: joi.number().integer().min(1)
     })
 
-    const validation = messageSchema.validate({user,limit})
+    const validation = limit !== undefined ? messageSchema.validate({ user, limit }) : messageSchema.validate({ user })
 
     if (validation.error) {
         const errors = validation.error.details.map((detail) => detail.message);
@@ -139,13 +138,13 @@ app.get('/messages', async (req, res) => {
     }
 })
 
-app.post('/status', async (req,res) => {
+app.post('/status', async (req, res) => {
     const { user } = req.headers
     try {
-        const foundUser = await db.collection("participants").findOne({name:user})
+        const foundUser = await db.collection("participants").findOne({ name: user })
         if (!foundUser) return res.sendStatus(404)
         const id = foundUser._id
-        await db.collection("participants").updateOne({_id:ObjectId(id)},{$set: {lastStatus:Date.now()}})
+        await db.collection("participants").updateOne({ _id: ObjectId(id) }, { $set: { lastStatus: Date.now() } })
         res.send(`atualizado ${user} lastStatus`)
 
     } catch (error) {
