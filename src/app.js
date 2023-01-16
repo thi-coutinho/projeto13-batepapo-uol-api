@@ -83,7 +83,7 @@ app.post('/messages', async (req, res) => {
         text: joi.string().required(),
         type: joi.string().valid('message', 'private_message').required()
     })
-    const validation = messageSchema.validate({ to, text, type })
+    const validation = messageSchema.validate({ to, text, type }, { abortEarly: false })
     if (validation.error) {
         const errors = validation.error.details.map((detail) => detail.message);
         return res.status(422).send(errors);
@@ -107,13 +107,13 @@ app.post('/messages', async (req, res) => {
 
 app.get('/messages', async (req, res) => {
     const { user } = req.headers
-    const limit = parseInt(req.query.limit) 
+    const limit = req.query.limit ? parseInt(req.query.limit) : undefined
     const messageSchema = joi.object({
         user: joi.string().required(),
         limit: joi.number().integer().min(1)
     })
-
-    const validation = limit !== undefined ? messageSchema.validate({ user, limit }) : messageSchema.validate({ user })
+    const validation = limit !== undefined ? messageSchema.validate({ user, limit }, { abortEarly: false }) :
+        messageSchema.validate({ user })
 
     if (validation.error) {
         const errors = validation.error.details.map((detail) => detail.message);
