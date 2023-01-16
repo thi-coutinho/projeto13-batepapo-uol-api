@@ -175,7 +175,7 @@ app.delete('/messages/:id', async (req,res) => {
         if (!foundId) return res.sendStatus(404)
         if (foundId.from !== user) return res.sendStatus(401)
         await db.collection("messages").deleteOne({_id: ObjectId(id)})
-        res.sendStatus(202)
+        res.sendStatus(200)
 
         
     } catch (error) {
