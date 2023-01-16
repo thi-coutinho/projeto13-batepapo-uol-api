@@ -110,3 +110,18 @@ app.get('/messages', async (req, res) => {
         res.status(500).send(error.message)
     }
 })
+
+app.post('/status', async (req,res) => {
+    const { user } = req.headers
+    try {
+        const foundUser = await db.collection("participants").findOne({name:user})
+        if (!foundUser) return res.sendStatus(404)
+        const id = foundUser._id
+        await db.collection("participants").updateOne({_id:ObjectId(id)},{$set: {lastStatus:Date.now()}})
+        res.send(`atualizado ${user} lastStatus`)
+
+    } catch (error) {
+        res.status(500).send(error.message)
+    }
+
+})
