@@ -23,6 +23,22 @@ const db = mongoClient.db()
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
 
+setInterval( async ()=>{
+    const participants = await db.collection("participants").find().toArray()
+    participants.forEach( async (p) => {
+        const now = Date.now()
+        if (now-p.lastStatus>= 10000){
+            await db.collection("participants").deleteOne({_id: ObjectId(p._id)})
+            let time = dayjs(now).format("HH:mm:ss")
+            const message = {from: p.name, to: 'Todos', text: 'sai da sala...', type: 'status', time }
+            await db.collection("messages").insertOne(message)
+            console.log(`removed ${p.name}`)
+        }
+
+    })
+},15000)
+
+
 app.post('/participants', async (req, res) => {
     const { name } = req.body
     const nameSchema = joi.object({
