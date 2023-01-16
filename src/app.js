@@ -92,7 +92,7 @@ app.post('/messages', async (req, res) => {
     try {
         const foundUser = await db.collection("participants").findOne({ name: user })
         // const foundUser = await db.collection("participants").findOne({ name:to })
-        if (!foundUser) return res.status(409).send("Not valid user")
+        if (!foundUser) return res.status(422).send("user not found")
         let now = Date.now()
         const message = {
             from: user, to, text, type, time: dayjs(now).format('HH:mm:ss')
@@ -112,13 +112,16 @@ app.get('/messages', async (req, res) => {
     try {
         let allMessages = await db.collection("messages").find().toArray()
         allMessages = allMessages.reverse().filter(m => {
-            let validMessage = (m.type === "message" || m.from === user || m.to === user)
+            let validMessage = (m.to === "Todos" || m.from === user || m.to === user)
             return validMessage
         })
 
-        if (limit) {
+        if (limit>=1) {
             res.send(allMessages.slice(0, limit))
+        } else if (limit <1){
+            res.sendStatus(422)
         } else {
+
             res.send(allMessages)
         }
 
