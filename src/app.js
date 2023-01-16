@@ -49,7 +49,6 @@ app.post('/participants', async (req, res) => {
         const errors = validation.error.details.map((detail) => detail.message);
         return res.status(422).send(errors);
     }
-
     try {
         const foundName = await db.collection("participants").findOne({ name })
         if (foundName) return res.status(409).send("Username already in use")
@@ -91,7 +90,6 @@ app.post('/messages', async (req, res) => {
 
     try {
         const foundUser = await db.collection("participants").findOne({ name: user })
-        // const foundUser = await db.collection("participants").findOne({ name:to })
         if (!foundUser) return res.status(422).send("user not found")
         let now = Date.now()
         const message = {
