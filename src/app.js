@@ -4,7 +4,6 @@ import { MongoClient, ObjectId } from 'mongodb'
 import dotenv from 'dotenv'
 import joi from 'joi'
 import dayjs from 'dayjs'
-import { stripHtml } from 'string-strip-html'
 
 dotenv.config()
 
@@ -41,7 +40,7 @@ setInterval(async () => {
 
 
 app.post('/participants', async (req, res) => {
-    const name = stripHtml(req.body.name).result.trim()
+    const { name } = req.body
     const nameSchema = joi.object({
         name: joi.string().required()
     })
@@ -50,6 +49,7 @@ app.post('/participants', async (req, res) => {
         const errors = validation.error.details.map((detail) => detail.message);
         return res.status(422).send(errors);
     }
+
     try {
         const foundName = await db.collection("participants").findOne({ name })
         if (foundName) return res.status(409).send("Username already in use")
@@ -76,11 +76,8 @@ app.get("/participants", async (req, res) => {
 })
 
 app.post('/messages', async (req, res) => {
-    let { to, text, type } = req.body
-    to = stripHtml(to).result.trim()
-    text = stripHtml(text).result.trim()
-    type = stripHtml(type).result.trim()
-    const user = stripHtml(req.headers.user).result.trim()
+    const { to, text, type } = req.body
+    const { user } = req.headers
     const messageSchema = joi.object({
         to: joi.string().required(),
         text: joi.string().required(),
@@ -94,6 +91,7 @@ app.post('/messages', async (req, res) => {
 
     try {
         const foundUser = await db.collection("participants").findOne({ name: user })
+        // const foundUser = await db.collection("participants").findOne({ name:to })
         if (!foundUser) return res.status(422).send("user not found")
         let now = Date.now()
         const message = {
@@ -130,7 +128,7 @@ app.get('/messages', async (req, res) => {
         })
 
         if (limit) {
-            res.send(allMessages.slice(0, limit).reverse())
+            res.send(allMessages.slice(0, limit))
         } else {
             res.send(allMessages)
         }
@@ -153,72 +151,4 @@ app.post('/status', async (req, res) => {
         res.status(500).send(error.message)
     }
 
-})
-
-app.delete('/messages/:id', async (req,res) => {
-    const {id} = req.params
-    const {user} = req.headers
-
-    const deleteSchema = joi.object({
-        user: joi.string().required(),
-        id: joi.string().alphanum().required()
-    })
-    const  validation = deleteSchema.validate({user,id},{abortEarly:false})
-    if(validation.error) {
-        const errors = validation.error.details.map((detail) => detail.message)
-        res.status(422).send(errors)
-    }
-
-    try {
-
-        const foundId = await db.collection("messages").findOne({_id: ObjectId(id)})
-        if (!foundId) return res.sendStatus(404)
-        if (foundId.from !== user) return res.sendStatus(401)
-        await db.collection("messages").deleteOne({_id: ObjectId(id)})
-        res.sendStatus(200)
-
-        
-    } catch (error) {
-        res.status(500).send(error.message)
-    }
-})
-
-app.put('/messages/:id', async (req,res) => {
-    let { to, text, type } = req.body
-    const {id} = req.params
-    const user = stripHtml(req.headers.user).result.trim()
-
-    to = stripHtml(to).result.trim()
-    text = stripHtml(text).result.trim()
-    type = stripHtml(type).result.trim()
-    
-    const messageSchema = joi.object({
-        to: joi.string().required(),
-        text: joi.string().required(),
-        type: joi.string().valid('message', 'private_message').required()
-    })
-
-    const validation = messageSchema.validate({ to, text, type }, { abortEarly: false })
-
-    if(validation.error) {
-        const errors = validation.error.details.map((detail) => detail.message)
-        res.status(422).send(errors)
-    }
-
-    try {
-        const foundUser = await db.collection("participants").findOne({ name: user })
-        if (!foundUser) return res.status(422).send("user not found")
-
-
-        const foundId = await db.collection("messages").findOne({_id: ObjectId(id)})
-        if (!foundId) return res.sendStatus(404)
-        if (foundId.from !== user) return res.sendStatus(401)
-        const message = {to,text,type}
-        await db.collection("messages").updateOne({_id: ObjectId(id)}, {$set: message})
-        res.sendStatus(200)
-
-        
-    } catch (error) {
-        res.status(500).send(error.message)
-    }
 })
