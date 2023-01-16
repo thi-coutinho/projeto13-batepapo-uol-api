@@ -109,6 +109,18 @@ app.get('/messages', async (req, res) => {
     const { user } = req.headers
     const limit = parseInt(req.query.limit)
 
+    const messageSchema = joi.object({
+        user:joi.string().required(),
+        limit:joi.number().integer().min(1)
+    })
+
+    const validation = messageSchema.validate({user,limit})
+
+    if (validation.error) {
+        const errors = validation.error.details.map((detail) => detail.message);
+        return res.status(422).send(errors);
+    }
+
     try {
         let allMessages = await db.collection("messages").find().toArray()
         allMessages = allMessages.reverse().filter(m => {
@@ -116,12 +128,9 @@ app.get('/messages', async (req, res) => {
             return validMessage
         })
 
-        if (limit>=1) {
+        if (limit) {
             res.send(allMessages.slice(0, limit))
-        } else if (limit <1){
-            res.sendStatus(422)
         } else {
-
             res.send(allMessages)
         }
 
